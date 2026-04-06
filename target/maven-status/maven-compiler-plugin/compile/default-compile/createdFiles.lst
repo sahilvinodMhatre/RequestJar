@@ -1,0 +1,16 @@
+com\requestjar\RequestJarExtension.class
+com\requestjar\gui\ImportDialog.class
+com\requestjar\gui\RequestViewerPanel.class
+com\requestjar\RequestJarExtension$1.class
+com\requestjar\gui\RequestJarTab$2.class
+com\requestjar\database\DatabaseManager.class
+com\requestjar\database\Request.class
+com\requestjar\gui\ExportDialog.class
+com\requestjar\gui\RequestJarTab$1.class
+com\requestjar\gui\RequestViewerPanel$1.class
+com\requestjar\gui\FolderSelectionDialog.class
+com\requestjar\gui\RequestViewerPanel$2.class
+com\requestjar\utils\BurpIntegration.class
+com\requestjar\database\Folder.class
+com\requestjar\gui\RequestJarTab.class
+com\requestjar\gui\FolderSelectionDialog$1.class
