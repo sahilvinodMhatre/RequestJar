@@ -1,6 +1,6 @@
 # RequestJar — Burp Suite Extension
 
-> **Save, organize, and replay HTTP requests during penetration testing — right inside Burp Suite.**
+> **Save, organize, and replay HTTP requests during penetration testing. Your work is saved persistently across sessions — even in Burp Community!**
 
 [![Download RequestJar JAR](https://img.shields.io/badge/Download-Release%20JAR-blue?style=for-the-badge&logo=java)](https://github.com/sahilvinodMhatre/RequestJar/releases/download/RequestJar-V1.0.0/RequestJar-1.0.0.jar)
 
@@ -19,6 +19,7 @@
 | 📤 **Export** | Export one collection or all collections to JSON (full hierarchy) or CSV |
 | 📥 **Import** | Import a previously exported JSON file to restore full folder structure |
 | 🔁 **Burp Integration** | Send stored requests to **Repeater**, **Intruder**, **Comparer**, or **Scanner** |
+| 🛡️ **Session Persistence** | Data is stored in a local SQLite database, so you never lose your work when Burp is closed (ideal for Community Edition users) |
 | 🗄️ **Local SQLite DB** | All data stays local — no external connections |
 
 ---
