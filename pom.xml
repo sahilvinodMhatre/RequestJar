@@ -12,6 +12,14 @@
 
     <name>RequestJar Burp Suite Extension</name>
     <description>A Burp Suite extension for storing and managing HTTP requests</description>
+    
+    <licenses>
+        <license>
+            <name>GNU General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <properties>
         <maven.compiler.source>15</maven.compiler.source>

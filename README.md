@@ -2,7 +2,7 @@
 
 > **Save, organize, and replay HTTP requests during penetration testing — right inside Burp Suite.**
 
-[![Download RequestJar JAR](https://img.shields.io/badge/Download-Release%20JAR-blue?style=for-the-badge&logo=java)](#)
+[![Download RequestJar JAR](https://img.shields.io/badge/Download-Release%20JAR-blue?style=for-the-badge&logo=java)](https://github.com/sahilvinodMhatre/RequestJar/releases/download/RequestJar-V1.0.0/RequestJar-1.0.0.jar)
 
 ---
 
@@ -38,38 +38,6 @@ No build tools required.
 
 ---
 
-## 🔨 Building from Source
-
-Only needed if you want to contribute or modify the extension.
-
-### Prerequisites
-- Java 15+
-- Maven 3.6+
-- Burp Suite JAR (for the API — provided as `scope: provided`)
-
-### Steps
-
-```bash
-# 1. Clone
-git clone https://github.com/<your-username>/Request-Jar.git
-cd Request-Jar
-
-# 2. Install the Burp extender API to local Maven repo
-#    (replace the path with your actual Burp Suite JAR location)
-mvn install:install-file \
-  -Dfile="C:/Program Files/BurpSuitePro/burpsuite_pro.jar" \
-  -DgroupId=net.burp-extender-api \
-  -DartifactId=burp-extender-api \
-  -Dversion=2026 \
-  -Dpackaging=jar
-
-# 3. Build
-mvn clean package
-
-# Output: target/RequestJar-1.0.0.jar
-```
-
----
 
 ## 📖 Usage
 
@@ -158,6 +126,39 @@ Feel free to contribute to this open-source project.
 
 ---
 
+## 🔨 Building from Source
+
+Only needed if you want to contribute or modify the extension.
+
+### Prerequisites
+- Java 15+
+- Maven 3.6+
+- Burp Suite JAR (for the API — provided as `scope: provided`)
+
+### Steps
+
+```bash
+# 1. Clone
+git clone https://github.com/<your-username>/Request-Jar.git
+cd Request-Jar
+
+# 2. Install the Burp extender API to local Maven repo
+#    (replace the path with your actual Burp Suite JAR location)
+mvn install:install-file \
+  -Dfile="C:/Program Files/BurpSuitePro/burpsuite_pro.jar" \
+  -DgroupId=net.burp-extender-api \
+  -DartifactId=burp-extender-api \
+  -Dversion=2026 \
+  -Dpackaging=jar
+
+# 3. Build
+mvn clean package
+
+# Output: target/RequestJar-1.0.0.jar
+```
+
+---
+
 ## 📄 License
 
-This project is open-source. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for the full text.
