@@ -118,15 +118,8 @@ Request-Jar/
 
 ---
 
-## 🛠 Troubleshooting
 
-| Problem | Solution |
-|---|---|
-| Database error on startup | Delete `~/.requestjar/requestjar.db` and restart Burp |
-| Scanner button does nothing | Active Scan is a **Burp Pro** feature; not available in Community Edition |
-| Old data not appearing after upgrade | Copy your previous `requestjar.db` to `~/.requestjar/requestjar.db` |
 
----
 
 ## 🤝 Contributing
 
