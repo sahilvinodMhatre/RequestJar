@@ -12,12 +12,12 @@ public class Request {
     private long createdAt;
 
     // ── Service info — needed for correct Burp API calls ─────────────────
-    /** The hostname / IP of the target server (e.g. "api.facebook.com"). */
-    private String host   = "";
-    /** The TCP port of the target server (e.g. 443). */
-    private int    port   = 80;
-    /** "http" or "https". */
+    private String host     = "";
+    private int    port     = 80;
     private String protocol = "http";
+
+    // ── Response data (captured from Repeater / HTTP History) ─────────────
+    private String response = "";
 
     public Request() {}
 
@@ -63,6 +63,11 @@ public class Request {
 
     /** Convenience: true when protocol is "https". */
     public boolean isHttps()            { return "https".equalsIgnoreCase(protocol); }
+
+    // ── Response getter/setter ────────────────────────────────────────────
+
+    public String getResponse()         { return response == null ? "" : response; }
+    public void setResponse(String v)   { this.response = v == null ? "" : v; }
 
     @Override
     public String toString() { return method + " " + url; }

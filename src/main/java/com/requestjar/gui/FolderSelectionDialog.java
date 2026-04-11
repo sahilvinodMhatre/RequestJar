@@ -9,13 +9,18 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * Shown when "Send to RequestJar" is chosen from Burp's context menu.
- * Lets the user pick any collection or subfolder, create a new collection,
- * or add a subfolder to the currently selected node — then confirm.
+ * Folder/collection picker dialog. Used for:
+ * - "Send to RequestJar" context menu (saving a request)
+ * - Move / Copy request to another folder
+ *
+ * The title and confirm-button text are configurable via constructor.
  */
 public class FolderSelectionDialog extends JDialog {
 
+    private static final int MAX_NAME_LENGTH = 255;
+
     private final DatabaseManager databaseManager;
+    private final String confirmButtonText;
 
     private JTree folderTree;
     private DefaultMutableTreeNode invisibleRoot;
@@ -24,12 +29,18 @@ public class FolderSelectionDialog extends JDialog {
     private Folder selectedFolder = null;
     private boolean confirmed     = false;
 
-    // Subfolder button is only enabled when a folder node is selected
     private JButton newSubfolderButton;
 
+    /** Default constructor for "Send to RequestJar" flow. */
     public FolderSelectionDialog(DatabaseManager databaseManager) {
+        this(databaseManager, "Save to RequestJar \u2014 Choose Destination", "\uD83D\uDCBE Save Here");
+    }
+
+    /** Configurable constructor for move/copy and other reuse. */
+    public FolderSelectionDialog(DatabaseManager databaseManager, String title, String confirmButtonText) {
         this.databaseManager = databaseManager;
-        setTitle("Save to RequestJar — Choose Destination");
+        this.confirmButtonText = confirmButtonText;
+        setTitle(title);
         setModal(true);
         setSize(460, 380);
         setLocationRelativeTo(null);
@@ -61,8 +72,6 @@ public class FolderSelectionDialog extends JDialog {
         folderTree.setRootVisible(false);
         folderTree.setShowsRootHandles(true);
 
-        // Emoji as part of text — color emoji fonts render their own colors regardless
-        // of the label foreground color, so this works in both light and dark Burp themes.
         folderTree.setCellRenderer(new DefaultTreeCellRenderer() {
             {
                 setLeafIcon(null);
@@ -79,8 +88,8 @@ public class FolderSelectionDialog extends JDialog {
                     if (obj instanceof Folder) {
                         Folder f = (Folder) obj;
                         String prefix = f.getParentId() == null
-                                ? "\uD83D\uDD78\uFE0F "  // 🕸️  collection
-                                : "\uD83D\uDCC1 ";        // 📁  subfolder
+                                ? "\uD83D\uDD78\uFE0F "   // 🕸️  collection
+                                : "\uD83D\uDCC1 ";          // 📁  subfolder
                         setText(prefix + f.getName());
                         setIcon(null);
                     }
@@ -106,12 +115,12 @@ public class FolderSelectionDialog extends JDialog {
         JPanel createRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
         createRow.setBorder(BorderFactory.createTitledBorder("Create new"));
 
-        JButton newCollectionBtn = new JButton("📂 New Collection");
+        JButton newCollectionBtn = new JButton("\uD83D\uDCC2 New Collection");
         newCollectionBtn.setToolTipText("Create a new top-level collection");
         newCollectionBtn.addActionListener(e -> createCollection());
         createRow.add(newCollectionBtn);
 
-        newSubfolderButton = new JButton("📁 New Subfolder");
+        newSubfolderButton = new JButton("\uD83D\uDCC1 New Subfolder");
         newSubfolderButton.setToolTipText("Create a subfolder inside the selected collection/folder");
         newSubfolderButton.setEnabled(false);
         newSubfolderButton.addActionListener(e -> createSubfolder());
@@ -120,7 +129,7 @@ public class FolderSelectionDialog extends JDialog {
         // ── Action row ────────────────────────────────────────────────────
         JPanel actionRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 4));
 
-        JButton saveBtn = new JButton("💾 Save Here");
+        JButton saveBtn = new JButton(confirmButtonText);
         saveBtn.addActionListener(e -> {
             if (selectedFolder == null) {
                 JOptionPane.showMessageDialog(this,
@@ -161,10 +170,8 @@ public class FolderSelectionDialog extends JDialog {
         }
 
         treeModel.reload();
-        // Expand all rows so the full hierarchy is visible in this dialog
         for (int i = 0; i < folderTree.getRowCount(); i++) folderTree.expandRow(i);
 
-        // Auto-select first collection if available
         if (invisibleRoot.getChildCount() > 0) {
             DefaultMutableTreeNode first = (DefaultMutableTreeNode) invisibleRoot.getChildAt(0);
             TreePath path = new TreePath(first.getPath());
@@ -192,7 +199,6 @@ public class FolderSelectionDialog extends JDialog {
         Folder f = databaseManager.createFolder(name, null);
         if (f != null) {
             loadFolders();
-            // Auto-select the newly created collection
             selectFolderById(f.getId());
         } else {
             JOptionPane.showMessageDialog(this, "Failed to create collection.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -214,8 +220,8 @@ public class FolderSelectionDialog extends JDialog {
     }
 
     /**
-     * Prompt for a folder name. Uses showInputDialog so pressing Enter
-     * always confirms (not accidentally closes) the dialog.
+     * Prompt for a folder name with F-07 validation:
+     * - not empty, max 255 chars, no control characters.
      */
     private String promptName(String title, String label) {
         String input = JOptionPane.showInputDialog(this, label, title, JOptionPane.PLAIN_MESSAGE);
@@ -224,6 +230,19 @@ public class FolderSelectionDialog extends JDialog {
         if (s.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Name cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
             return null;
+        }
+        if (s.length() > MAX_NAME_LENGTH) {
+            JOptionPane.showMessageDialog(this,
+                    "Name is too long (max " + MAX_NAME_LENGTH + " characters).",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+        for (char c : s.toCharArray()) {
+            if (c != '\t' && c != ' ' && Character.isISOControl(c)) {
+                JOptionPane.showMessageDialog(this,
+                        "Name contains invalid characters.", "Error", JOptionPane.ERROR_MESSAGE);
+                return null;
+            }
         }
         return s;
     }

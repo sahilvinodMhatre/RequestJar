@@ -14,6 +14,8 @@ import java.util.List;
 
 public class RequestJarTab extends JPanel {
 
+    private static final int MAX_NAME_LENGTH = 255;
+
     private final IBurpExtenderCallbacks callbacks;
     private final DatabaseManager databaseManager;
 
@@ -87,7 +89,6 @@ public class RequestJarTab extends JPanel {
         // ── Custom cell renderer: emoji prefix in text (works in any L&F / theme) ──
         folderTree.setCellRenderer(new DefaultTreeCellRenderer() {
             {
-                // Remove the default JTree folder/leaf icons so only our emoji shows
                 setLeafIcon(null);
                 setOpenIcon(null);
                 setClosedIcon(null);
@@ -104,9 +105,6 @@ public class RequestJarTab extends JPanel {
                     Object obj = ((DefaultMutableTreeNode) value).getUserObject();
                     if (obj instanceof Folder) {
                         Folder f = (Folder) obj;
-                        // Emoji is part of the label text — color emoji fonts render
-                        // with their own intrinsic colors regardless of label foreground,
-                        // so this works correctly in both light and dark L&Fs.
                         String prefix = f.getParentId() == null
                                 ? "\uD83D\uDD78\uFE0F "   // 🕸️  collection
                                 : "\uD83D\uDCC1 ";         // 📁  subfolder
@@ -134,7 +132,6 @@ public class RequestJarTab extends JPanel {
             if (node != null && node.getUserObject() instanceof Folder) {
                 Folder f = (Folder) node.getUserObject();
                 loadRequestsForFolder(f);
-                // Remember the top-level collection for "Export"
                 selectedCollection = getRootCollection(node);
             } else {
                 selectedCollection = null;
@@ -173,6 +170,16 @@ public class RequestJarTab extends JPanel {
             if (folderSelected) showNewSubfolderDialog((Folder) selected.getUserObject());
         });
         menu.add(newSub);
+
+        menu.addSeparator();
+
+        // ── Rename ────────────────────────────────────────────────────────
+        JMenuItem rename = new JMenuItem("\u270F\uFE0F Rename");
+        rename.setEnabled(folderSelected);
+        rename.addActionListener(ev -> {
+            if (folderSelected) renameFolder((Folder) selected.getUserObject());
+        });
+        menu.add(rename);
 
         menu.addSeparator();
 
@@ -216,8 +223,6 @@ public class RequestJarTab extends JPanel {
         }
 
         treeModel.reload();
-        // Leave collections collapsed so the hierarchy is immediately clear.
-        // Users can click to expand any collection they want to browse.
     }
 
     private DefaultMutableTreeNode findNode(DefaultMutableTreeNode root, int targetId) {
@@ -257,6 +262,19 @@ public class RequestJarTab extends JPanel {
         }
     }
 
+    private void renameFolder(Folder folder) {
+        String newName = promptName("Rename \"" + folder.getName() + "\"", "New Name:");
+        if (newName != null) {
+            if (databaseManager.renameFolder(folder.getId(), newName)) {
+                refreshRequestTree();
+                callbacks.printOutput("Renamed to: " + newName);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Failed to rename.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     private void deleteFolder(Folder folder) {
         int ans = JOptionPane.showConfirmDialog(this,
                 "Delete \"" + folder.getName() + "\" and all its requests?",
@@ -268,24 +286,35 @@ public class RequestJarTab extends JPanel {
     }
 
     /**
-     * Prompt the user for a name using showInputDialog.
-     * Using showInputDialog (not showConfirmDialog+JTextField) ensures
-     * pressing Enter always confirms — not closes — the popup.
+     * Prompt for a name with F-07 validation:
+     * not empty, max 255 chars, no control characters.
      */
     private String promptName(String title, String label) {
         String input = JOptionPane.showInputDialog(this, label, title, JOptionPane.PLAIN_MESSAGE);
-        if (input == null) return null; // cancelled via Cancel or X
+        if (input == null) return null;
         String s = input.trim();
         if (s.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Name cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
             return null;
+        }
+        if (s.length() > MAX_NAME_LENGTH) {
+            JOptionPane.showMessageDialog(this,
+                    "Name is too long (max " + MAX_NAME_LENGTH + " characters).",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+        for (char c : s.toCharArray()) {
+            if (c != '\t' && c != ' ' && Character.isISOControl(c)) {
+                JOptionPane.showMessageDialog(this,
+                        "Name contains invalid characters.", "Error", JOptionPane.ERROR_MESSAGE);
+                return null;
+            }
         }
         return s;
     }
 
     // ── Export / Import ───────────────────────────────────────────────────
 
-    /** Export only the currently selected collection. */
     private void showExportSelectedDialog() {
         if (selectedCollection == null) {
             JOptionPane.showMessageDialog(this,
@@ -296,7 +325,6 @@ public class RequestJarTab extends JPanel {
         new ExportDialog(databaseManager, selectedCollection).setVisible(true);
     }
 
-    /** Export every collection at once. */
     private void showExportAllDialog() {
         new ExportDialog(databaseManager, null).setVisible(true);
     }

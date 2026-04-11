@@ -15,51 +15,55 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RequestJarExtension implements IBurpExtender, ITab, IContextMenuFactory {
-    
+
     private IBurpExtenderCallbacks callbacks;
     private IExtensionHelpers helpers;
     private DatabaseManager databaseManager;
     private RequestJarTab requestJarTab;
-    
+
     @Override
     public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks) {
         this.callbacks = callbacks;
         this.helpers = callbacks.getHelpers();
-        
+
         // Set extension name
         callbacks.setExtensionName("RequestJar");
-        
+
         // Initialize database
         databaseManager = new DatabaseManager();
-        
+
         // Create main tab
         requestJarTab = new RequestJarTab(callbacks, databaseManager);
-        
+
         // Add custom tab to Burp Suite
         callbacks.addSuiteTab(this);
-        
+
         // Register context menu factory
         callbacks.registerContextMenuFactory(this);
-        
-        // Print extension loaded message
+
+        // F-06 fix: Close database when extension is unloaded
+        callbacks.registerExtensionStateListener(() -> {
+            databaseManager.close();
+            callbacks.printOutput("RequestJar: Database connection closed.");
+        });
+
         callbacks.printOutput("RequestJar extension loaded successfully!");
     }
-    
+
     @Override
     public String getTabCaption() {
         return "RequestJar";
     }
-    
+
     @Override
     public Component getUiComponent() {
         return requestJarTab;
     }
-    
+
     @Override
     public List<JMenuItem> createMenuItems(IContextMenuInvocation invocation) {
         List<JMenuItem> menuItems = new ArrayList<>();
-        
-        // Check if the invocation is for a request/response
+
         if (invocation.getSelectedMessages() != null && invocation.getSelectedMessages().length > 0) {
             JMenuItem sendToRequestJarItem = new JMenuItem("Send to RequestJar");
             sendToRequestJarItem.addActionListener(new ActionListener() {
@@ -73,39 +77,33 @@ public class RequestJarExtension implements IBurpExtender, ITab, IContextMenuFac
             });
             menuItems.add(sendToRequestJarItem);
         }
-        
+
         return menuItems;
     }
-    
+
     private void showSaveDialog(IHttpRequestResponse messageInfo) {
-        // Show folder selection dialog
         FolderSelectionDialog dialog = new FolderSelectionDialog(databaseManager);
         dialog.setVisible(true);
-        
+
         if (dialog.getSelectedFolder() != null) {
-            // Save request to selected folder
             Request request = createRequestFromMessage(messageInfo, dialog.getSelectedFolder().getId());
             databaseManager.saveRequest(request);
-            
-            // Refresh the UI
             requestJarTab.refreshRequestTree();
-            
             callbacks.printOutput("Request saved to RequestJar: " + request.getUrl());
         }
     }
-    
+
     private Request createRequestFromMessage(IHttpRequestResponse messageInfo, int folderId) {
         byte[] requestBytes = messageInfo.getRequest();
         String requestStr = helpers.bytesToString(requestBytes);
 
-        // ── Pull host / port / protocol straight from Burp's service object ──
-        // This is the authoritative source — no guessing from headers.
+        // Pull host / port / protocol from Burp's service object (authoritative source)
         burp.IHttpService service = messageInfo.getHttpService();
         String host     = service != null ? service.getHost()     : "";
         int    port     = service != null ? service.getPort()     : 80;
-        String protocol = service != null ? service.getProtocol() : "http"; // "http" or "https"
+        String protocol = service != null ? service.getProtocol() : "http";
 
-        // ── Parse first line: METHOD /path HTTP/1.x ──────────────────────
+        // Parse first line: METHOD /path HTTP/1.x
         int firstLineEnd = requestStr.indexOf("\r\n");
         if (firstLineEnd == -1) firstLineEnd = requestStr.indexOf("\n");
         String firstLine = firstLineEnd > 0 ? requestStr.substring(0, firstLineEnd).trim() : "";
@@ -113,10 +111,9 @@ public class RequestJarExtension implements IBurpExtender, ITab, IContextMenuFac
         String method   = parts.length > 0 ? parts[0] : "GET";
         String path     = parts.length > 1 ? parts[1] : "/";
 
-        // Build a full URL so it's useful when displayed in the table
         String fullUrl = protocol + "://" + host + path;
 
-        // ── Split headers / body ──────────────────────────────────────────
+        // Split headers / body
         int headersEnd = requestStr.indexOf("\r\n\r\n");
         int bodyOffset = 4;
         if (headersEnd == -1) { headersEnd = requestStr.indexOf("\n\n"); bodyOffset = 2; }
@@ -135,6 +132,12 @@ public class RequestJarExtension implements IBurpExtender, ITab, IContextMenuFac
         requestObj.setPort(port);
         requestObj.setProtocol(protocol);
         requestObj.setCreatedAt(System.currentTimeMillis());
+
+        // Capture response if available (Repeater, HTTP History, etc.)
+        byte[] responseBytes = messageInfo.getResponse();
+        if (responseBytes != null && responseBytes.length > 0) {
+            requestObj.setResponse(helpers.bytesToString(responseBytes));
+        }
 
         return requestObj;
     }
